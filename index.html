@@ -109,7 +109,6 @@ footer{text-align:center;font-size:12px;color:var(--muted)}
   <div id="banner" class="banner" hidden></div>
   <div class="status" id="status">Carregando…</div>
   <section class="board" id="board" aria-label="Dias da semana"></section>
-  <footer>Os eventos vêm direto do Google Agenda da equipe e se atualizam sozinhos a cada minuto.</footer>
 </div>
 
 <script>
@@ -208,6 +207,20 @@ function emptyAll(text){ document.querySelectorAll(".list").forEach(l => l.inner
 // Cores de evento do Google Agenda (colorId 1–11)
 const EVENT_COLORS = {"1":"#7986cb","2":"#33b679","3":"#8e24aa","4":"#e67c73","5":"#f6bf26","6":"#f4511e","7":"#039be5","8":"#616161","9":"#3f51b5","10":"#0b8043","11":"#d50000"};
 
+// Busca via JSONP (tag <script>), que não sofre bloqueio de CORS
+function jsonp(url){
+  return new Promise((resolve, reject) => {
+    const cb = "__quadro_cb_" + Date.now() + "_" + Math.floor(Math.random()*1e6);
+    const el = document.createElement("script");
+    const done = () => { delete window[cb]; el.remove(); clearTimeout(t); };
+    const t = setTimeout(() => { done(); reject(new Error("tempo esgotado")); }, 20000);
+    window[cb] = data => { done(); resolve(data); };
+    el.onerror = () => { done(); reject(new Error("não foi possível acessar o Apps Script (confira se a implantação está como 'Qualquer pessoa')")); };
+    el.src = url + (url.includes("?") ? "&" : "?") + "callback=" + cb;
+    document.head.appendChild(el);
+  });
+}
+
 async function load(){
   if (SCRIPT_URL.startsWith("COLE_AQUI")) {
     showBanner("<strong>Falta configurar o endereço do Apps Script.</strong> Cole a URL em <code>SCRIPT_URL</code> no index.html (veja o LEIAME.md).");
@@ -216,9 +229,7 @@ async function load(){
   const seq = ++loadSeq;
   const params = new URLSearchParams({ start: weekStart.toISOString(), end: addDays(weekStart,5).toISOString() });
   try {
-    const r = await fetch(SCRIPT_URL + "?" + params, { cache: "no-store" });
-    if (!r.ok) throw new Error("Erro " + r.status);
-    const data = await r.json();
+    const data = await jsonp(SCRIPT_URL + "?" + params);
     if (seq !== loadSeq) return;
     if (data.error) { showBanner("<strong>O Apps Script recusou o pedido:</strong> " + esc(data.error)); return; }
     events = (data.events || []).map(ev => ({
@@ -235,7 +246,7 @@ async function load(){
   } catch (e) {
     if (seq !== loadSeq) return;
     // Mantém o que já está na tela e tenta de novo no próximo ciclo
-    showBanner("<strong>Sem conexão com a agenda agora.</strong> Tentando de novo em 1 minuto." + (lastUpdated ? " Mostrando dados de " + hm(lastUpdated) + "." : ""));
+    showBanner("<strong>Sem conexão com a agenda agora</strong> (" + esc(e.message) + "). Tentando de novo em 1 minuto." + (lastUpdated ? " Mostrando dados de " + hm(lastUpdated) + "." : ""));
     if (!events) emptyAll("Sem dados");
   }
 }
