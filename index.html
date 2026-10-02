@@ -199,9 +199,7 @@ function renderBoard(){
 
 // ======= CONFIGURAÇÃO =======
 // 1) Cole aqui o endereço do App da Web do Apps Script (termina em /exec)
-const SCRIPT_URL = "https://script.google.com/macros/s/AKfycbwo-eBEULkXssLbcPyS2qcI_AFZgC3cu-tkkcA_XObRdNutf7cZ5g8IG4B-yjFZDOXvPw/exec";
-// 2) A mesma chave definida no Code.gs (CHAVE)
-const KEY = "N2field";
+const SCRIPT_URL = "https://script.google.com/macros/s/AKfycbxrW1ZsBYbQoqzYUoQzon7sqGSZX_MjXVKDRkPfkvYUTctVSBea4xQZvkhzfdi0fmWTRw/exec";
 // ============================
 
 function showBanner(html){ const b=$("banner"); if (!html){ b.hidden=true; b.innerHTML=""; return; } b.innerHTML = html; b.hidden=false; }
@@ -216,7 +214,7 @@ async function load(){
     emptyAll("Sem dados"); return;
   }
   const seq = ++loadSeq;
-  const params = new URLSearchParams({ start: weekStart.toISOString(), end: addDays(weekStart,5).toISOString(), key: KEY });
+  const params = new URLSearchParams({ start: weekStart.toISOString(), end: addDays(weekStart,5).toISOString() });
   try {
     const r = await fetch(SCRIPT_URL + "?" + params, { cache: "no-store" });
     if (!r.ok) throw new Error("Erro " + r.status);
