@@ -1,0 +1,322 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<title>Quadro da Semana</title>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,500;12..96,700&family=IBM+Plex+Sans:wght@400;500;600&family=IBM+Plex+Mono:wght@500&display=swap">
+<style>
+/* Layout: barra de semana no topo, cinco colunas de dia útil lado a lado (empilham no celular), cards de evento ordenados por hora */
+:root{
+  --bg:#eef1f6; --surface:#ffffff; --sunken:#e3e8f0; --ink:#17203a; --muted:#5b6582; --line:#d3d9e5;
+  --accent:#2f5bd8; --accent-soft:#dfe7fc; --today:#fff7d6; --today-line:#e5c64b;
+  --e1:#2f5bd8; --e2:#0f8a7a; --e3:#c2512f; --e4:#8a4fc4; --e5:#b8870c;
+  --warn-bg:#fdeee8; --warn-fg:#8f3417;
+  --f-display:"Bricolage Grotesque", "Segoe UI", system-ui, sans-serif;
+  --f-body:"IBM Plex Sans", system-ui, -apple-system, "Segoe UI", sans-serif;
+  --f-mono:"IBM Plex Mono", ui-monospace, "SFMono-Regular", Menlo, monospace;
+}
+@media (prefers-color-scheme: dark){:root:not([data-theme="light"]){
+  --bg:#10142a; --surface:#1a2040; --sunken:#151a35; --ink:#e7ebf7; --muted:#9aa3c2; --line:#2b3359;
+  --accent:#7d9cff; --accent-soft:#25306a; --today:#2a2a1c; --today-line:#b99a2c;
+  --e1:#7d9cff; --e2:#3cc7b2; --e3:#f08a68; --e4:#b98af0; --e5:#e2b53c;
+  --warn-bg:#3a2119; --warn-fg:#f3b49d; color-scheme:dark}}
+:root[data-theme="dark"]{
+  --bg:#10142a; --surface:#1a2040; --sunken:#151a35; --ink:#e7ebf7; --muted:#9aa3c2; --line:#2b3359;
+  --accent:#7d9cff; --accent-soft:#25306a; --today:#2a2a1c; --today-line:#b99a2c;
+  --e1:#7d9cff; --e2:#3cc7b2; --e3:#f08a68; --e4:#b98af0; --e5:#e2b53c;
+  --warn-bg:#3a2119; --warn-fg:#f3b49d; color-scheme:dark}
+
+html,body{background:var(--bg)}
+*{box-sizing:border-box}
+[hidden]{display:none!important}
+body{margin:0;color:var(--ink);font-family:var(--f-body);font-size:14px;line-height:1.45;padding-inline:16px;padding-block:20px 32px}
+.wrap{max-width:1200px;margin-inline:auto;display:grid;gap:18px}
+
+header{display:flex;flex-direction:column;align-items:center;text-align:center;gap:12px}
+.titles{display:grid;gap:2px;min-width:0;justify-items:center}
+.eyebrow{font-size:11px;letter-spacing:.09em;text-transform:uppercase;color:var(--muted);font-weight:600}
+h1{font-family:var(--f-display);font-weight:700;font-size:clamp(22px,3.2vw,32px);margin:0;letter-spacing:-.01em;text-wrap:balance}
+.controls{display:flex;flex-wrap:wrap;gap:8px;align-items:center;justify-content:center}
+button,.btn{font:inherit;font-weight:500;border:1px solid var(--line);background:var(--surface);color:var(--ink);border-radius:8px;padding:7px 12px;cursor:pointer;text-decoration:none;display:inline-flex;align-items:center;gap:6px;line-height:1.2}
+button:hover,.btn:hover{border-color:var(--accent)}
+button:focus-visible,.btn:focus-visible,a:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+.btn.primary{background:var(--accent);border-color:var(--accent);color:var(--surface)}
+.icon-btn{padding:7px 10px}
+.status{text-align:center;font-size:12px;color:var(--muted);font-variant-numeric:tabular-nums}
+
+.banner{border-radius:10px;padding:12px 14px;background:var(--warn-bg);color:var(--warn-fg);justify-content:center;text-align:center;display:flex;flex-wrap:wrap;gap:8px 14px;align-items:center}
+.banner strong{font-weight:600}
+
+.board{display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:10px;align-items:start}
+.day{background:var(--sunken);border:1px solid var(--line);border-radius:12px;padding:10px;display:grid;gap:8px;min-width:0;align-content:start;min-height:max(180px,calc(100vh - 260px));min-height:max(180px,calc(100dvh - 260px))}
+.day.is-today{background:var(--today);border-color:var(--today-line)}
+.day.is-past{opacity:.72}
+.dayhead{display:grid;justify-items:center;text-align:center;gap:2px;padding-inline:2px}
+.dname{font-size:11px;letter-spacing:.09em;text-transform:uppercase;font-weight:600;color:var(--muted)}
+.dnum{font-family:var(--f-display);font-weight:700;font-size:22px;line-height:1;font-variant-numeric:tabular-nums}
+.is-today .dnum{color:var(--accent)}
+.count{font-size:11px;color:var(--muted);font-variant-numeric:tabular-nums}
+.list{display:grid;gap:6px}
+.empty{font-size:12px;color:var(--muted);padding:8px 4px;border:1px dashed var(--line);border-radius:8px;text-align:center}
+
+.card{background:var(--surface);background:color-mix(in srgb,var(--c,var(--e1)) 14%,var(--surface));border:1px solid var(--line);border-left:4px solid var(--c,var(--e1));border-radius:8px;padding:8px 9px;display:grid;gap:3px;min-width:0;color:inherit;text-decoration:none;text-align:center;justify-items:center}
+.card:hover{border-color:var(--c,var(--e1))}
+.time{font-family:var(--f-mono);font-size:11.5px;color:var(--muted);font-variant-numeric:tabular-nums}
+.allday .time{color:var(--ink);font-weight:600}
+.cal{font-size:11px;display:inline-flex;align-items:center;gap:5px}
+.cal::before{content:"";width:8px;height:8px;border-radius:50%;background:var(--c)}
+.summary{font-weight:600;font-size:13.5px;overflow-wrap:anywhere}
+.meta{font-size:12px;color:var(--muted);overflow-wrap:anywhere}
+.chips{display:flex;flex-wrap:wrap;justify-content:center;gap:4px;margin-top:2px}
+.chip{font-size:11px;padding:1px 7px;border-radius:999px;background:var(--accent-soft);color:var(--ink)}
+.card.declined .summary{text-decoration:line-through;color:var(--muted)}
+.card.now{box-shadow:0 0 0 2px var(--c)}
+
+.skeleton{height:46px;border-radius:8px;background:var(--surface);opacity:.55}
+@media (prefers-reduced-motion:no-preference){.skeleton{animation:pulse 1.2s ease-in-out infinite}}
+@keyframes pulse{50%{opacity:.25}}
+
+@media (max-width:720px){
+  .board{grid-template-columns:1fr}
+  .day{min-height:0}
+  .day.is-past.collapsed .list{display:none}
+}
+.tv .controls,.tv #colorsPanel,.tv footer{display:none!important}
+.tv body{padding-block:12px}
+footer{text-align:center;font-size:12px;color:var(--muted)}
+.panel{background:var(--surface);border:1px solid var(--line);border-radius:12px;padding:14px;display:grid;gap:10px;max-width:560px;width:100%;margin-inline:auto}
+.panel h2{font-family:var(--f-display);font-size:16px;margin:0;text-align:center}
+.panel p{margin:0;font-size:12.5px;color:var(--muted);text-align:center}
+.rules{display:grid;gap:6px}
+.rule{display:grid;grid-template-columns:1fr 44px auto;gap:6px;align-items:center}
+.rule input[type=text]{font:inherit;padding:7px 9px;border:1px solid var(--line);border-radius:8px;background:var(--bg);color:var(--ink);min-width:0}
+.rule input[type=color]{width:44px;height:34px;padding:2px;border:1px solid var(--line);border-radius:8px;background:var(--bg);cursor:pointer}
+.panel-actions{display:flex;gap:8px;justify-content:center;flex-wrap:wrap}
+</style>
+
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <div class="titles">
+      <span class="eyebrow" id="range">Semana</span>
+      <h1 id="heading">Minha semana</h1>
+    </div>
+    <div class="controls">
+      <button id="prev" class="icon-btn" aria-label="Semana anterior">‹</button>
+      <button id="today">Hoje</button>
+      <button id="next" class="icon-btn" aria-label="Próxima semana">›</button>
+      <button id="refresh">Atualizar</button>
+      <button id="colorsBtn" aria-expanded="false" aria-controls="colorsPanel">🎨 Cores</button>
+      <button id="theme" aria-label="Alternar tema">Tema escuro</button>
+      <a class="btn primary" id="newEvent" href="https://calendar.google.com/calendar/r/eventedit" target="_blank" rel="noopener">+ Nova atividade</a>
+    </div>
+  </header>
+  <section id="colorsPanel" class="panel" hidden aria-label="Cores por demanda">
+    <h2>Cores por demanda</h2>
+    <p>Se o título do evento tiver a palavra, o card fica com a cor escolhida. A primeira regra que combinar vale.</p>
+    <div class="rules" id="rules"></div>
+    <div class="panel-actions">
+      <button id="addRule">+ Adicionar regra</button>
+      <button id="closeColors" class="btn primary">Pronto</button>
+    </div>
+  </section>
+  <div id="banner" class="banner" hidden></div>
+  <div class="status" id="status">Carregando…</div>
+  <section class="board" id="board" aria-label="Dias da semana"></section>
+  <footer>Os eventos vêm direto do Google Agenda da equipe e se atualizam sozinhos a cada minuto.</footer>
+</div>
+
+<script>
+const TZ = (() => { try { return Intl.DateTimeFormat().resolvedOptions().timeZone || "America/Sao_Paulo"; } catch { return "America/Sao_Paulo"; } })();
+const DAYS = ["Segunda","Terça","Quarta","Quinta","Sexta"];
+const MONTHS = ["jan","fev","mar","abr","mai","jun","jul","ago","set","out","nov","dez"];
+const $ = id => document.getElementById(id);
+
+let weekStart = currentMonday();
+let events = null, lastUpdated = null, loadSeq = 0;
+
+function mondayOf(d){ const x = new Date(d.getFullYear(), d.getMonth(), d.getDate()); const dow = (x.getDay()+6)%7; x.setDate(x.getDate()-dow); return x; }
+function currentMonday(){ const n = new Date(); const dow = n.getDay(); return dow===0||dow===6 ? addDays(mondayOf(n),7) : mondayOf(n); }
+function addDays(d,n){ const x = new Date(d); x.setDate(x.getDate()+n); return x; }
+function sameDay(a,b){ return a.getFullYear()===b.getFullYear() && a.getMonth()===b.getMonth() && a.getDate()===b.getDate(); }
+function ymd(d){ return d.getFullYear()+"-"+String(d.getMonth()+1).padStart(2,"0")+"-"+String(d.getDate()).padStart(2,"0"); }
+function hm(d){ return String(d.getHours()).padStart(2,"0")+":"+String(d.getMinutes()).padStart(2,"0"); }
+function parseDateOnly(s){ const [y,m,d] = s.split("-").map(Number); return new Date(y,m-1,d); }
+function hashColor(s){ let h=0; for (const ch of (s||"")) h=(h*31+ch.charCodeAt(0))|0; return "var(--e"+(Math.abs(h)%5+1)+")"; }
+function esc(s){ const d=document.createElement("div"); d.textContent = s ?? ""; return d.innerHTML; }
+
+function renderHeader(){
+  const end = addDays(weekStart,4);
+  const fmt = d => d.getDate()+" "+MONTHS[d.getMonth()];
+  $("range").textContent = fmt(weekStart)+" – "+fmt(end)+" "+end.getFullYear();
+  const thisWeek = sameDay(weekStart, currentMonday());
+  $("heading").textContent = "Minha semana";
+  if (!thisWeek){
+    const diff = Math.round((weekStart - currentMonday())/(7*864e5));
+    $("heading").textContent = diff===-1 ? "Semana passada" : diff===1 ? "Próxima semana" : (diff<0 ? `${-diff} semanas atrás` : `Daqui a ${diff} semanas`);
+  }
+}
+
+function normalize(ev){
+  const allDay = !!(ev.start && ev.start.date && !ev.start.dateTime);
+  const start = allDay ? parseDateOnly(ev.start.date) : new Date(ev.start?.dateTime);
+  const end = allDay ? parseDateOnly(ev.end?.date || ev.start.date) : new Date(ev.end?.dateTime || ev.start?.dateTime);
+  const me = (ev.attendees||[]).find(a => a.self);
+  return {
+    id: ev.id, title: ev.summary || "(sem título)", allDay, start, end,
+    location: ev.location || "", link: ev.htmlLink || "", meet: ev.conferenceUrl || ev.hangoutLink || "",
+    declined: me?.responseStatus === "declined", status: ev.status
+  };
+}
+
+function eventsForDay(day){
+  if (!events) return null;
+  const dayStart = new Date(day.getFullYear(), day.getMonth(), day.getDate());
+  const dayEnd = addDays(dayStart,1);
+  return events.filter(e => e.status !== "cancelled" && (e.allDay
+      ? (e.start < dayEnd && e.end > dayStart) || sameDay(e.start, dayStart)
+      : (e.start < dayEnd && e.end > dayStart) || (e.start >= dayStart && e.start < dayEnd)))
+    .sort((a,b) => (b.allDay - a.allDay) || (a.start - b.start));
+}
+
+function renderBoard(){
+  const board = $("board"); board.innerHTML = "";
+  const now = new Date(), today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+  for (let i=0;i<5;i++){
+    const day = addDays(weekStart,i);
+    const col = document.createElement("article");
+    col.className = "day" + (sameDay(day,today) ? " is-today" : "") + (day < today ? " is-past collapsed" : "");
+    const list = eventsForDay(day);
+    col.innerHTML = `<div class="dayhead"><div><div class="dname">${DAYS[i]}</div><div class="dnum">${String(day.getDate()).padStart(2,"0")}/${String(day.getMonth()+1).padStart(2,"0")}</div></div><span class="count">${list ? (list.length ? list.length + (list.length===1?" atividade":" atividades") : "") : ""}</span></div><div class="list"></div>`;
+    const box = col.querySelector(".list");
+    if (!list){ box.innerHTML = '<div class="skeleton"></div><div class="skeleton"></div>'; }
+    else if (!list.length){ box.innerHTML = '<div class="empty">Nada marcado</div>'; }
+    else for (const e of list){
+      const a = document.createElement(e.link ? "a" : "div");
+      if (e.link){ a.href = e.link; a.target = "_blank"; a.rel = "noopener"; a.title = "Abrir no Google Agenda"; }
+      const isNow = !e.allDay && e.start <= now && e.end > now;
+      a.className = "card" + (e.allDay ? " allday" : "") + (e.declined ? " declined" : "") + (isNow ? " now" : "");
+      a.style.setProperty("--c", ruleColor(e.title) || e.color || hashColor(e.title));
+      const time = e.allDay ? "Dia inteiro" : `${hm(e.start)} – ${hm(e.end)}`;
+      let chips = "";
+      if (isNow) chips += '<span class="chip">Agora</span>';
+      if (e.meet) chips += '<span class="chip">Meet</span>';
+      if (e.declined) chips += '<span class="chip">Recusado</span>';
+      a.innerHTML = `<span class="time">${time}</span><span class="summary">${esc(e.title)}</span>${e.location ? `<span class="meta">${esc(e.location)}</span>` : ""}${e.calendar && !e.primaryCal ? `<span class="meta cal">${esc(e.calendar)}</span>` : ""}${chips ? `<span class="chips">${chips}</span>` : ""}`;
+      box.appendChild(a);
+    }
+    col.querySelector(".dayhead").addEventListener("click", () => col.classList.toggle("collapsed"));
+    board.appendChild(col);
+  }
+}
+
+
+// ======= CONFIGURAÇÃO =======
+// 1) Cole aqui o endereço do App da Web do Apps Script (termina em /exec)
+const SCRIPT_URL = "COLE_AQUI_A_URL_DO_APPS_SCRIPT";
+// 2) A mesma chave definida no Code.gs (CHAVE)
+const KEY = "troque-esta-chave";
+// ============================
+
+function showBanner(html){ const b=$("banner"); if (!html){ b.hidden=true; b.innerHTML=""; return; } b.innerHTML = html; b.hidden=false; }
+function emptyAll(text){ document.querySelectorAll(".list").forEach(l => l.innerHTML = '<div class="empty">' + text + '</div>'); }
+
+// Cores de evento do Google Agenda (colorId 1–11)
+const EVENT_COLORS = {"1":"#7986cb","2":"#33b679","3":"#8e24aa","4":"#e67c73","5":"#f6bf26","6":"#f4511e","7":"#039be5","8":"#616161","9":"#3f51b5","10":"#0b8043","11":"#d50000"};
+
+async function load(){
+  if (SCRIPT_URL.startsWith("COLE_AQUI")) {
+    showBanner("<strong>Falta configurar o endereço do Apps Script.</strong> Cole a URL em <code>SCRIPT_URL</code> no index.html (veja o LEIAME.md).");
+    emptyAll("Sem dados"); return;
+  }
+  const seq = ++loadSeq;
+  const params = new URLSearchParams({ start: weekStart.toISOString(), end: addDays(weekStart,5).toISOString(), key: KEY });
+  try {
+    const r = await fetch(SCRIPT_URL + "?" + params, { cache: "no-store" });
+    if (!r.ok) throw new Error("Erro " + r.status);
+    const data = await r.json();
+    if (seq !== loadSeq) return;
+    if (data.error) { showBanner("<strong>O Apps Script recusou o pedido:</strong> " + esc(data.error)); return; }
+    events = (data.events || []).map(ev => ({
+      id: ev.id, title: ev.title || "(sem título)", allDay: ev.allDay,
+      start: ev.allDay ? parseDateOnly(ev.start) : new Date(ev.start),
+      end: ev.allDay ? parseDateOnly(ev.end) : new Date(ev.end),
+      location: ev.location || "", link: "", meet: "", declined: false, status: "confirmed",
+      color: (ev.colorId && EVENT_COLORS[ev.colorId]) || ev.calendarColor || null,
+      calendar: ev.calendar || "", primaryCal: !!ev.primary
+    }));
+    lastUpdated = new Date(); showBanner(null);
+    $("status").textContent = "Atualizado às " + hm(lastUpdated);
+    renderBoard();
+  } catch (e) {
+    if (seq !== loadSeq) return;
+    // Mantém o que já está na tela e tenta de novo no próximo ciclo
+    showBanner("<strong>Sem conexão com a agenda agora.</strong> Tentando de novo em 1 minuto." + (lastUpdated ? " Mostrando dados de " + hm(lastUpdated) + "." : ""));
+    if (!events) emptyAll("Sem dados");
+  }
+}
+
+function changeWeek(ws){ weekStart = ws; events = null; renderHeader(); renderBoard(); load(); }
+
+$("prev").onclick = () => changeWeek(addDays(weekStart,-7));
+$("next").onclick = () => changeWeek(addDays(weekStart,7));
+$("today").onclick = () => changeWeek(currentMonday());
+$("refresh").onclick = load;
+
+// Modo TV: abra o site com ?tv no final do endereço para esconder os botões
+if (new URLSearchParams(location.search).has("tv")) document.documentElement.classList.add("tv");
+
+// Mantém a tela da TV acesa quando o navegador permite
+async function keepAwake(){ try { if ("wakeLock" in navigator && document.visibilityState === "visible") await navigator.wakeLock.request("screen"); } catch {} }
+document.addEventListener("visibilitychange", keepAwake); keepAwake();
+
+// ======= CORES POR DEMANDA =======
+// Regras padrão (valem em qualquer navegador). Edite aqui se quiser deixar fixo:
+const DEFAULT_RULES = [
+  { word: "Sessão", color: "#ff0000" },
+];
+let rules = DEFAULT_RULES.slice();
+try { const r = JSON.parse(localStorage.getItem("quadro-cores") || "null"); if (Array.isArray(r)) rules = r; } catch {}
+function norm(t){ return (t || "").toLowerCase().normalize("NFD").replace(/[̀-ͯ]/g, ""); }
+function ruleColor(title){ const t = norm(title); const r = rules.find(r => r.word && r.word.trim() && t.includes(norm(r.word.trim()))); return r ? r.color : null; }
+function saveRules(){ try { localStorage.setItem("quadro-cores", JSON.stringify(rules)); } catch {} renderBoard(); }
+function renderRules(){
+  const box = $("rules"); box.innerHTML = "";
+  if (!rules.length) box.innerHTML = '<p>Nenhuma regra ainda.</p>';
+  rules.forEach((r, i) => {
+    const row = document.createElement("div"); row.className = "rule";
+    row.innerHTML = `<input type="text" id="rule-word-${i}" placeholder="Palavra no título (ex.: Cível)" aria-label="Palavra"><input type="color" id="rule-color-${i}" aria-label="Cor"><button aria-label="Remover regra">✕</button>`;
+    const [w, c, del] = row.children;
+    w.value = r.word; c.value = r.color;
+    w.oninput = () => { rules[i].word = w.value; saveRules(); };
+    c.oninput = () => { rules[i].color = c.value; saveRules(); };
+    del.onclick = () => { rules.splice(i, 1); saveRules(); renderRules(); };
+    box.appendChild(row);
+  });
+}
+$("colorsBtn").onclick = () => { const p = $("colorsPanel"); p.hidden = !p.hidden; $("colorsBtn").setAttribute("aria-expanded", String(!p.hidden)); if (!p.hidden) renderRules(); };
+$("closeColors").onclick = () => { $("colorsPanel").hidden = true; $("colorsBtn").setAttribute("aria-expanded", "false"); };
+$("addRule").onclick = () => { rules.push({ word: "", color: "#33b679" }); saveRules(); renderRules(); const inp = document.querySelector("#rules .rule:last-child input[type=text]"); if (inp) inp.focus(); };
+
+function currentTheme(){ const t = document.documentElement.dataset.theme; if (t) return t; return matchMedia("(prefers-color-scheme: dark)").matches ? "dark" : "light"; }
+function applyTheme(t){ document.documentElement.dataset.theme = t; $("theme").textContent = t === "dark" ? "☀ Tema claro" : "☾ Tema escuro"; }
+try { const saved = localStorage.getItem("quadro-tema"); applyTheme(saved === "light" || saved === "dark" ? saved : currentTheme()); } catch { applyTheme(currentTheme()); }
+$("theme").onclick = () => { const t = currentTheme() === "dark" ? "light" : "dark"; applyTheme(t); try { localStorage.setItem("quadro-tema", t); } catch {} };
+
+// Atualiza a cada minuto; vira para a semana atual sozinho (ex.: segunda de manhã)
+let shownMonday = currentMonday().getTime();
+setInterval(() => {
+  const m = currentMonday().getTime();
+  if (m !== shownMonday) { shownMonday = m; changeWeek(currentMonday()); return; }
+  load();
+}, 60000);
+// Recarrega a página uma vez por dia (de madrugada) para pegar atualizações do site
+setInterval(() => { const n = new Date(); if (n.getHours() === 4 && n.getMinutes() === 0) location.reload(); }, 60000);
+renderHeader(); renderBoard(); load();
+</script>
+</body>
+</html>
