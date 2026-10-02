@@ -84,17 +84,9 @@ button:focus-visible,.btn:focus-visible,a:focus-visible{outline:2px solid var(--
   .day{min-height:0}
   .day.is-past.collapsed .list{display:none}
 }
-.tv .controls,.tv #colorsPanel,.tv footer{display:none!important}
+.tv .controls,.tv footer{display:none!important}
 .tv body{padding-block:12px}
 footer{text-align:center;font-size:12px;color:var(--muted)}
-.panel{background:var(--surface);border:1px solid var(--line);border-radius:12px;padding:14px;display:grid;gap:10px;max-width:560px;width:100%;margin-inline:auto}
-.panel h2{font-family:var(--f-display);font-size:16px;margin:0;text-align:center}
-.panel p{margin:0;font-size:12.5px;color:var(--muted);text-align:center}
-.rules{display:grid;gap:6px}
-.rule{display:grid;grid-template-columns:1fr 44px auto;gap:6px;align-items:center}
-.rule input[type=text]{font:inherit;padding:7px 9px;border:1px solid var(--line);border-radius:8px;background:var(--bg);color:var(--ink);min-width:0}
-.rule input[type=color]{width:44px;height:34px;padding:2px;border:1px solid var(--line);border-radius:8px;background:var(--bg);cursor:pointer}
-.panel-actions{display:flex;gap:8px;justify-content:center;flex-wrap:wrap}
 </style>
 
 </head>
@@ -110,20 +102,10 @@ footer{text-align:center;font-size:12px;color:var(--muted)}
       <button id="today">Hoje</button>
       <button id="next" class="icon-btn" aria-label="Próxima semana">›</button>
       <button id="refresh">Atualizar</button>
-      <button id="colorsBtn" aria-expanded="false" aria-controls="colorsPanel">🎨 Cores</button>
       <button id="theme" aria-label="Alternar tema">Tema escuro</button>
       <a class="btn primary" id="newEvent" href="https://calendar.google.com/calendar/r/eventedit" target="_blank" rel="noopener">+ Nova atividade</a>
     </div>
   </header>
-  <section id="colorsPanel" class="panel" hidden aria-label="Cores por demanda">
-    <h2>Cores por demanda</h2>
-    <p>Se o título do evento tiver a palavra, o card fica com a cor escolhida. A primeira regra que combinar vale.</p>
-    <div class="rules" id="rules"></div>
-    <div class="panel-actions">
-      <button id="addRule">+ Adicionar regra</button>
-      <button id="closeColors" class="btn primary">Pronto</button>
-    </div>
-  </section>
   <div id="banner" class="banner" hidden></div>
   <div class="status" id="status">Carregando…</div>
   <section class="board" id="board" aria-label="Dias da semana"></section>
@@ -217,7 +199,7 @@ function renderBoard(){
 
 // ======= CONFIGURAÇÃO =======
 // 1) Cole aqui o endereço do App da Web do Apps Script (termina em /exec)
-const SCRIPT_URL = "https://script.google.com/macros/s/AKfycbyXmEuTjqJdmAhSvLVQByWtwhT_uS5OWR5rd7M2xnbEupZZUfsLiTyT3bpF5lIqNA3rsw/exec";
+const SCRIPT_URL = "https://script.google.com/macros/s/AKfycbwo-eBEULkXssLbcPyS2qcI_AFZgC3cu-tkkcA_XObRdNutf7cZ5g8IG4B-yjFZDOXvPw/exec";
 // 2) A mesma chave definida no Code.gs (CHAVE)
 const KEY = "N2field";
 // ============================
@@ -275,32 +257,13 @@ async function keepAwake(){ try { if ("wakeLock" in navigator && document.visibi
 document.addEventListener("visibilitychange", keepAwake); keepAwake();
 
 // ======= CORES POR DEMANDA =======
-// Regras padrão (valem em qualquer navegador). Edite aqui se quiser deixar fixo:
+// Cor por palavra no título do evento. Edite esta lista para mudar as cores:
 const DEFAULT_RULES = [
   { word: "Sessão", color: "#ff0000" },
 ];
-let rules = DEFAULT_RULES.slice();
-try { const r = JSON.parse(localStorage.getItem("quadro-cores") || "null"); if (Array.isArray(r)) rules = r; } catch {}
-function norm(t){ return (t || "").toLowerCase().normalize("NFD").replace(/[̀-ͯ]/g, ""); }
+const rules = DEFAULT_RULES;
+function norm(t){ return (t || "").toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, ""); }
 function ruleColor(title){ const t = norm(title); const r = rules.find(r => r.word && r.word.trim() && t.includes(norm(r.word.trim()))); return r ? r.color : null; }
-function saveRules(){ try { localStorage.setItem("quadro-cores", JSON.stringify(rules)); } catch {} renderBoard(); }
-function renderRules(){
-  const box = $("rules"); box.innerHTML = "";
-  if (!rules.length) box.innerHTML = '<p>Nenhuma regra ainda.</p>';
-  rules.forEach((r, i) => {
-    const row = document.createElement("div"); row.className = "rule";
-    row.innerHTML = `<input type="text" id="rule-word-${i}" placeholder="Palavra no título (ex.: Cível)" aria-label="Palavra"><input type="color" id="rule-color-${i}" aria-label="Cor"><button aria-label="Remover regra">✕</button>`;
-    const [w, c, del] = row.children;
-    w.value = r.word; c.value = r.color;
-    w.oninput = () => { rules[i].word = w.value; saveRules(); };
-    c.oninput = () => { rules[i].color = c.value; saveRules(); };
-    del.onclick = () => { rules.splice(i, 1); saveRules(); renderRules(); };
-    box.appendChild(row);
-  });
-}
-$("colorsBtn").onclick = () => { const p = $("colorsPanel"); p.hidden = !p.hidden; $("colorsBtn").setAttribute("aria-expanded", String(!p.hidden)); if (!p.hidden) renderRules(); };
-$("closeColors").onclick = () => { $("colorsPanel").hidden = true; $("colorsBtn").setAttribute("aria-expanded", "false"); };
-$("addRule").onclick = () => { rules.push({ word: "", color: "#33b679" }); saveRules(); renderRules(); const inp = document.querySelector("#rules .rule:last-child input[type=text]"); if (inp) inp.focus(); };
 
 function currentTheme(){ const t = document.documentElement.dataset.theme; if (t) return t; return matchMedia("(prefers-color-scheme: dark)").matches ? "dark" : "light"; }
 function applyTheme(t){ document.documentElement.dataset.theme = t; $("theme").textContent = t === "dark" ? "☀ Tema claro" : "☾ Tema escuro"; }
